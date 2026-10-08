@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="th" class="login-locked">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบจัดการความสะอาดห้องน้ำ — Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink:  '#12141f',
+            ink2: '#1b1e2c',
+            paper:'#f4f5f7',
+            line: '#e7e9ef',
+            mint: '#00d9a3'
+          },
+          fontFamily: {
+            sans: ['"IBM Plex Sans Thai"', 'ui-sans-serif', 'sans-serif'],
+            mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: #c9ccd6; border-radius: 9999px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid #e7e9ef;
+      border-radius: 12px;
+      box-shadow: 0 1px 2px rgba(18,20,31,.04);
+    }
+    .section-label {
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: #8a8f9e;
+    }
+
+    html.login-locked,
+    body.login-locked {
+      overflow: hidden !important;
+      height: 100% !important;
+    }
+    body.login-locked #view-login {
+      height: 100vh;
+      min-height: 100vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; text-align: left;
+      padding: 9px 12px; border-radius: 10px;
+      font-size: 14px; font-weight: 500;
+      color: rgba(255,255,255,.62);
+      transition: background-color .15s ease, color .15s ease;
+      white-space: nowrap;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .nav-item.active { background: #ffffff; color: #12141f; }
+    .nav-item.active svg { stroke: #12141f; }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px; border-radius: 9999px;
+      font-size: 12px; font-weight: 600; line-height: 1.4;
+    }
+    .badge .dot { width: 6px; height: 6px; border-radius: 9999px; background: currentColor; }
+
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 2px 8px; border-radius: 9999px;
+      font-size: 11.5px; font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .chip-clean  { background:#ecfdf5; color:#047857; border-color:#a7f3d0; }
+    .chip-issue  { background:#fef2f2; color:#b91c1c; border-color:#fecaca; }
+    .chip-null   { background:#f3f4f6; color:#6b7280; border-color:#e5e7eb; }
+
+    .field {
+      width: 100%; padding: 10px 12px;
+      border: 1px solid #dfe2ea; border-radius: 10px;
+      background: #fff; font-size: 14px; color: #12141f;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .field:focus { outline: none; border-color: #12141f; box-shadow: 0 0 0 3px rgba(18,20,31,.08); }
+
+    .btn-primary {
+      background: #12141f; color: #fff; font-weight: 600;
+      border-radius: 10px; transition: background-color .15s ease;
+    }
+    .btn-primary:hover { background: #1b1e2c; }
+    .btn-mint {
+      background: #00d9a3; color: #12141f; font-weight: 700;
+      border-radius: 10px; transition: filter .15s ease;
+    }
+    .btn-mint:hover { filter: brightness(.94); }
+
+    .check-row { transition: background-color .12s ease; }
+    .check-row:hover { background: #f7f8fa; }
+    input[type="checkbox"] { accent-color: #0d9488; }
+
+    .login-bg {
+      background:
+        radial-gradient(1100px 500px at 85% -10%, rgba(0,217,163,.14), transparent 60%),
+        radial-gradient(900px 500px at -10% 110%, rgba(13,148,136,.16), transparent 55%),
+        #12141f;
+    }
+    .swal2-popup { font-family: 'IBM Plex Sans Thai', sans-serif !important; }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(18,20,31,.55);
+      z-index: 50; display: flex; align-items: center; justify-content: center;
+      padding: 16px; backdrop-filter: blur(2px);
+    }
+
+    /* ================= PRINT AREA ================= */
+    #print-area { display: none; }
+
+    @media print {
+      html, body {
+        overflow: visible !important;
+        height: auto !important;
+        background: #ffffff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      body > *:not(#print-area) { display: none !important; }
+      #print-area { display: block !important; }
+
+      /* === A4 แนวนอน === */
+      @page { size: A4 landscape; margin: 8mm 10mm; }
+
+      .pr-page { page-break-after: always; }
+      .pr-page:last-child { page-break-after: auto; }
+
+      /* หัวเรื่องฟอร์ม */
+      .pr-form-title {
+        font-size: 13pt; font-weight: 700; text-align: center;
+        margin-bottom: 3pt; line-height: 1.25;
+      }
+      .pr-form-line {
+        display: flex; justify-content: space-between; gap: 14pt;
+        font-size: 10.5pt; margin: 2pt 0;
+      }
+      .pr-form-line > span { flex: 1; }
+      .pr-dotted {
+        border-bottom: 1px dotted #333;
+        display: inline-block;
+        min-width: 120pt;
+        padding: 0 4pt;
+        vertical-align: bottom;
+      }
+
+      /* ตารางฟอร์ม */
+      .pr-form-table {
+        width: 100%; border-collapse: collapse;
+        font-size: 8pt;
+        font-family: 'IBM Plex Sans Thai', sans-serif;
+        table-layout: fixed;
+        margin-top: 5pt;
+      }
+      .pr-form-table th, .pr-form-table td {
+        border: 1px solid #000;
+        padding: 0.5pt;
+        text-align: center;
+        vertical-align: middle;
+        height: 13pt;
+        line-height: 1.1;
+        overflow: hidden;
+        word-break: keep-all;
+        white-space: nowrap;
+      }
+      .pr-form-table thead th {
+        background: #f0f0f0;
+        font-weight: 700;
+        height: 16pt;
+        font-size: 8pt;
+      }
+      .pr-form-table td.pr-label {
+        text-align: left;
+        padding: 1pt 3pt;
+        font-size: 7.5pt;
+        background: #fafafa;
+        line-height: 1.15;
+        white-space: normal;
+      }
+      .pr-form-table td.pr-section-label {
+        text-align: left;
+        padding: 1pt 3pt;
+        font-size: 8pt;
+        font-style: italic;
+        font-weight: 600;
+        background: #ececec;
+        white-space: normal;
+      }
+
+      /* หัวมุมทแยง (วันที่ / รายการ) */
+      .pr-form-table th.pr-corner {
+        position: relative;
+        width: 62pt;
+        height: 22pt;
+        background-color: #f0f0f0;
+        background-image: linear-gradient(
+          to bottom right,
+          transparent calc(50% - 0.5pt),
+          #000 calc(50% - 0.5pt),
+          #000 calc(50% + 0.5pt),
+          transparent calc(50% + 0.5pt)
+        );
+        white-space: normal;
+      }
+      .pr-form-table th.pr-corner .pr-corner-tr {
+        position: absolute; top: 2pt; right: 4pt;
+        font-size: 7.5pt; font-weight: 700;
+      }
+      .pr-form-table th.pr-corner .pr-corner-bl {
+        position: absolute; bottom: 2pt; left: 4pt;
+        font-size: 7.5pt; font-weight: 700;
+      }
+
+      /* คอลัมน์วันที่กว้างเท่ากัน */
+      .pr-form-table th.day-col {
+        white-space: nowrap;
+        font-size: 8pt;
+      }
+
+      .pr-form-table td.mark-clean { color: #047857; font-weight: 700; font-size: 10pt; }
+      .pr-form-table td.mark-issue { color: #b91c1c; font-weight: 700; font-size: 10pt; }
+      .pr-form-table td.mark-null  { color: #9ca3af; font-size: 9pt; }
+      .pr-form-table sup { font-size: 5.5pt; vertical-align: super; }
+      .pr-form-table tr.pr-sign-row td { height: 26pt; }
+    }
+  </style>
+<base target="_blank">
+</head>
+<body class="bg-paper text-ink font-sans antialiased login-locked">
+
+  <!-- ============ LOGIN ============ -->
+  <div id="view-login" class="login-bg min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-sm">
+      <div class="flex items-center gap-3 mb-6 justify-center">
+        <div class="w-11 h-11 rounded-xl bg-mint flex items-center justify-center">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#12141f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2.7s6.5 7 6.5 11.3a6.5 6.5 0 1 1-13 0C5.5 9.7 12 2.7 12 2.7z"/>
+            <path d="M9.5 14a2.5 2.5 0 0 0 2.5 2.5"/>
+          </svg>
+        </div>
+        <div class="text-left">
+          <p class="text-white font-bold text-lg leading-tight">ระบบจัดการความสะอาดห้องน้ำ</p>
+          <p class="text-white/50 text-xs font-mono tracking-widest uppercase">Restroom Ops Dashboard</p>
+        </div>
+      </div>
+
+      <div class="card p-6">
+        <h2 class="text-xl font-bold mb-1">เข้าสู่ระบบ</h2>
+        <p class="text-sm text-gray-500 mb-5">สำหรับเจ้าหน้าที่และผู้ตรวจสอบ</p>
+        <label class="section-label block mb-1.5">อีเมล</label>
+        <input type="email" id="login-email" placeholder="name@example.com" class="field mb-4">
+        <label class="section-label block mb-1.5">รหัสผ่าน</label>
+        <input type="password" id="login-password" placeholder="••••••••" class="field mb-5"
+               onkeydown="if(event.key==='Enter')login()">
+        <button onclick="login()" class="btn-primary w-full py-2.5 mb-2.5">เข้าสู่ระบบ (เจ้าหน้าที่)</button>
+        <button onclick="guestLogin()" class="w-full py-2.5 rounded-[10px] border border-line font-semibold text-gray-600 hover:bg-paper transition-colors">เข้าสู่ระบบแบบไม่ใช้บัญชี</button>
+      </div>
+      <p class="text-center text-white/40 text-xs mt-5 font-mono">v2.4 · Landscape Print Edition</p>
+    </div>
+  </div>
+
+  <!-- ============ APP SHELL ============ -->
+  <div id="app-shell" class="hidden flex-col md:flex-row min-h-screen">
+
+    <aside class="bg-ink text-white md:w-64 md:min-h-screen md:sticky md:top-0 flex md:flex-col shrink-0">
+      <div class="hidden md:flex items-center gap-3 px-5 pt-6 pb-7">
+        <div class="w-10 h-10 rounded-xl bg-mint flex items-center justify-center shrink-0">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#12141f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2.7s6.5 7 6.5 11.3a6.5 6.5 0 1 1-13 0C5.5 9.7 12 2.7 12 2.7z"/>
+            <path d="M9.5 14a2.5 2.5 0 0 0 2.5 2.5"/>
+          </svg>
+        </div>
+        <div>
+          <p class="font-bold leading-tight text-[15px]">ความสะอาดห้องน้ำ</p>
+          <p class="text-white/45 text-[10px] font-mono tracking-widest uppercase">Ops Dashboard</p>
+        </div>
+      </div>
+
+      <p class="section-label px-5 mb-2 hidden md:block" style="color:rgba(255,255,255,.35)">เมนูหลัก</p>
+      <nav class="flex md:flex-col gap-1 px-3 md:px-3 py-3 md:py-0 overflow-x-auto md:overflow-visible flex-1">
+        <button class="nav-item" data-page="record" onclick="navigate('record')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.62)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3h6v1.5"/><path d="M9 11h6M9 15h4"/></svg>
+          บันทึกความสะอาด
+        </button>
+        <button class="nav-item" data-page="history" onclick="navigate('history')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.62)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+          ประวัติการบันทึก
+        </button>
+        <button class="nav-item" data-page="analysis" onclick="navigate('analysis')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.62)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>
+          การวิเคราะห์
+        </button>
+        <button class="nav-item" data-page="summary" onclick="navigate('summary')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.62)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 4V2M16 4V2M8 14h2M8 17h5"/></svg>
+          สรุปรายเดือน
+        </button>
+        <button class="nav-item hidden" data-page="review" id="nav-review" onclick="navigate('review')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.62)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l2.5 2.5L15.5 9"/><circle cx="12" cy="12" r="9"/></svg>
+          รอตรวจสอบ
+        </button>
+      </nav>
+
+      <div class="hidden md:block px-3 pb-5 pt-4 mt-auto border-t border-white/10">
+        <button class="nav-item" onclick="logout()" style="color:#fca5a5">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+          ออกจากระบบ
+        </button>
+      </div>
+    </aside>
+
+    <div class="flex-1 min-w-0 flex flex-col">
+      <header class="bg-white border-b border-line px-5 md:px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="md:hidden w-9 h-9 rounded-lg bg-ink flex items-center justify-center shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00d9a3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.7s6.5 7 6.5 11.3a6.5 6.5 0 1 1-13 0C5.5 9.7 12 2.7 12 2.7z"/></svg>
+          </div>
+          <div class="min-w-0">
+            <p class="section-label">แดชบอร์ด</p>
+            <h1 id="page-title" class="text-lg md:text-xl font-bold truncate">บันทึกความสะอาด</h1>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="role-badge" class="badge bg-ink text-white hidden sm:inline-flex"><span class="dot" style="background:#00d9a3"></span><span id="role-text">ผู้เยี่ยมชม</span></span>
+          <button onclick="logout()" class="md:hidden text-red-500 text-sm font-semibold">ออกจากระบบ</button>
+        </div>
+      </header>
+
+      <main class="p-4 md:p-8 flex-1">
+
+        <div id="page-record" class="hidden max-w-3xl mx-auto">
+          <div class="card p-5 md:p-7">
+            <div class="flex items-start justify-between mb-6">
+              <div>
+                <h2 class="text-xl font-bold">บันทึกความสะอาดห้องน้ำ</h2>
+                <p class="text-sm text-gray-500 mt-0.5">กรอกข้อมูลและติ๊กรายการตรวจสอบให้ครบถ้วน</p>
+              </div>
+              <span class="badge bg-paper text-gray-500 border border-line font-mono hidden md:inline-flex" id="record-date"></span>
+            </div>
+
+            <form id="record-form" class="space-y-5">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="section-label block mb-1.5">ผู้ปฏิบัติงาน</label>
+                  <select id="worker" class="field" required>
+                    <option value="">-- เลือกผู้ปฏิบัติงานก่อน --</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="section-label block mb-1.5">สถานที่</label>
+                  <select id="location" class="field" required disabled>
+                    <option value="">-- เลือกผู้ปฏิบัติงานก่อน --</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="border border-line rounded-xl overflow-hidden">
+                <div class="grid grid-cols-[1fr_auto] gap-2 items-center px-4 py-2.5 bg-paper border-b border-line">
+                  <span class="section-label">รายการตรวจสอบ</span>
+                  <span class="section-label w-24 text-center">ทำความสะอาดแล้ว</span>
+                </div>
+                <div id="checkbox-container" class="divide-y divide-line"></div>
+              </div>
+
+              <button type="button" onclick="submitRecord()" class="btn-mint w-full py-3 text-base">บันทึกข้อมูล</button>
+            </form>
+          </div>
+        </div>
+
+        <div id="page-review" class="hidden max-w-4xl mx-auto">
+          <div class="card p-5 md:p-7">
+            <div class="flex items-start justify-between mb-5">
+              <div>
+                <h2 class="text-xl font-bold">รายการรอตรวจสอบ</h2>
+                <p class="text-sm text-gray-500 mt-0.5">ตรวจสอบและยืนยันผลการบันทึกของผู้ปฏิบัติงาน</p>
+              </div>
+              <span id="review-count" class="badge bg-amber-50 text-amber-700 border border-amber-200"></span>
+            </div>
+            <div id="review-list" class="space-y-3"></div>
+          </div>
+        </div>
+
+        <div id="page-history" class="hidden">
+          <div class="card overflow-hidden">
+            <div class="px-5 md:px-7 pt-5 md:pt-6 pb-4 flex items-start justify-between">
+              <div>
+                <h2 class="text-xl font-bold">ประวัติการบันทึก</h2>
+                <p class="text-sm text-gray-500 mt-0.5">รายการบันทึกทั้งหมด เรียงตามเวลา</p>
+              </div>
+              <span id="history-count" class="badge bg-paper text-gray-500 border border-line font-mono"></span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead>
+                  <tr class="border-y border-line bg-paper">
+                    <th class="section-label px-5 md:px-7 py-3 font-semibold">เวลา</th>
+                    <th class="section-label px-4 py-3 font-semibold">สถานที่</th>
+                    <th class="section-label px-4 py-3 font-semibold">ผู้ปฏิบัติงาน</th>
+                    <th class="section-label px-5 md:px-7 py-3 font-semibold text-right">สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody id="history-tbody" class="divide-y divide-line"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="page-analysis" class="hidden">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
+            <div class="card p-4 md:p-5">
+              <p class="section-label mb-2">บันทึกทั้งหมด</p>
+              <p id="kpi-total" class="text-2xl md:text-3xl font-bold font-mono">–</p>
+            </div>
+            <div class="card p-4 md:p-5">
+              <p class="section-label mb-2">รอตรวจสอบ</p>
+              <p id="kpi-pending" class="text-2xl md:text-3xl font-bold font-mono text-amber-600">–</p>
+            </div>
+            <div class="card p-4 md:p-5">
+              <p class="section-label mb-2">ยืนยันแล้ว</p>
+              <p id="kpi-confirmed" class="text-2xl md:text-3xl font-bold font-mono text-emerald-600">–</p>
+            </div>
+            <div class="card p-4 md:p-5">
+              <p class="section-label mb-2">อัตราความสะอาดโดยรวม</p>
+              <p id="kpi-clean" class="text-2xl md:text-3xl font-bold font-mono text-teal-600">–</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            <div class="card p-5 md:p-6">
+              <h3 class="font-bold mb-1">ภาพรวมจุดที่มักมีปัญหา (ไม่สะอาด)</h3>
+              <p class="text-sm text-gray-500 mb-4">จำนวนครั้งที่พบว่าไม่สะอาด แยกตามรายการ</p>
+              <canvas id="issueChart"></canvas>
+            </div>
+            <div class="card p-5 md:p-6">
+              <h3 class="font-bold mb-1">ประสิทธิภาพผู้ปฏิบัติงาน</h3>
+              <p class="text-sm text-gray-500 mb-4">สัดส่วนความสะอาด (%) แยกตามผู้ปฏิบัติงาน</p>
+              <div class="max-w-[320px] mx-auto"><canvas id="workerChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="page-summary" class="hidden max-w-5xl mx-auto">
+          <div class="card p-5 md:p-6 mb-4">
+            <div class="flex items-start justify-between flex-wrap gap-3">
+              <div>
+                <h2 class="text-xl font-bold">สรุปรายเดือน</h2>
+                <p class="text-sm text-gray-500 mt-0.5">สรุปการปฏิบัติงาน แยกตามผู้ปฏิบัติงาน (รายวัน / รายครั้ง)</p>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <input type="month" id="summary-month" class="field !w-auto" onchange="onSummaryMonthChange(this.value)">
+                <button onclick="printAllWorkersReport()" class="btn-primary px-4 py-2 text-sm inline-flex items-center gap-1.5">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                  พิมพ์ทั้งหมด / PDF
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4">
+            <div class="card p-4 md:p-5">
+              <p class="section-label mb-2">ผู้ปฏิบัติงาน</p>
+              <p id="sum-workers" class="text-2xl md:text-3xl font-bold font-mono">–</p>
+            </div>
+            <div class="card p-4 md:p-5">
+              <p class="section-label mb-2">วันที่มีบันทึก</p>
+              <p id="sum-days" class="text-2xl md:text-3xl font-bold font-mono text-indigo-600">–</p>
+            </div>
+            <div class="card p-4 md:p-5">
+              <p class="section-label mb-2">บันทึกทั้งหมด</p>
+              <p id="sum-records" class="text-2xl md:text-3xl font-bold font-mono">–</p>
+            </div>
+            <div class="card p-4 md:p-5">
+              <p class="section-label mb-2">มีจุดบกพร่อง</p>
+              <p id="sum-issues" class="text-2xl md:text-3xl font-bold font-mono text-red-600">–</p>
+            </div>
+          </div>
+
+          <div id="summary-worker-list" class="space-y-3"></div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ============ Summary Detail Modal ============ -->
+  <div id="summary-detail-modal" class="modal-backdrop hidden" onclick="if(event.target===this)closeSummaryDetail()">
+    <div class="bg-white rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="border-b border-line px-5 md:px-6 py-4 flex items-center justify-between gap-3 shrink-0">
+        <div class="min-w-0">
+          <h3 id="summary-detail-title" class="font-bold text-lg truncate">–</h3>
+          <p id="summary-detail-subtitle" class="text-xs text-gray-500 mt-0.5 font-mono">–</p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button onclick="printWorkerReport()" class="btn-primary px-3 py-1.5 text-sm inline-flex items-center gap-1.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            พิมพ์ / PDF
+          </button>
+          <button onclick="closeSummaryDetail()" class="w-9 h-9 rounded-lg hover:bg-paper flex items-center justify-center text-gray-400 hover:text-ink transition-colors">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="summary-detail-body" class="p-5 md:p-6 overflow-y-auto flex-1"></div>
+    </div>
+  </div>
+
+  <!-- ============ PRINT AREA ============ -->
+  <div id="print-area"></div>
+
+  <script>
+    // ================= Backend bridge =================
+    const isGAS = (typeof google !== 'undefined') && google.script && google.script.run;
+
+    function gasRun(method, ...args) {
+      return new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)[method](...args);
+      });
+    }
+
+    const DEMO_DROPDOWNS = {
+      locations: ['ห้องน้ำชาย ชั้น 1', 'ห้องน้ำหญิง ชั้น 1', 'ห้องน้ำชาย ชั้น 2', 'ห้องน้ำหญิง ชั้น 2'],
+      workers: ['สมชาย ใจดี', 'สมหญิง รักงาน', 'วิชัย ขยัน'],
+      inspectors: []
+    };
+    let demoRowId = 100;
+    let demoRecords = [
+      { rowId: 1, Timestamp: new Date(Date.now()-86400000*2).toISOString(), Location:'ห้องน้ำชาย ชั้น 1', Worker:'สมชาย ใจดี', Inspector:'ฐิติชญาน์ กมลปิตุลารัตน์', Status:'ยืนยันแล้ว',
+        Floor_Action:true, Floor_State:true, Wall_Action:true, Wall_State:true, Toilet_Action:true, Toilet_State:true, Bidet_Action:true, Bidet_State:true, Sink_Action:true, Sink_State:true, Mirror_Action:true, Mirror_State:true, Trash_Action:true, Trash_State:true, Soap_Action:true, Soap_State:true, Tissue_Action:true, Tissue_State:true },
+      { rowId: 2, Timestamp: new Date(Date.now()-86400000).toISOString(), Location:'ห้องน้ำหญิง ชั้น 1', Worker:'สมหญิง รักงาน', Inspector:'ฐิติชญาน์ กมลปิตุลารัตน์', Status:'ยืนยันแล้ว',
+        Floor_Action:true, Floor_State:true, Wall_Action:true, Wall_State:true, Toilet_Action:true, Toilet_State:false, Bidet_Action:true, Bidet_State:true, Sink_Action:true, Sink_State:true, Mirror_Action:true, Mirror_State:false, Trash_Action:true, Trash_State:true, Soap_Action:true, Soap_State:true, Tissue_Action:false, Tissue_State:false },
+      { rowId: 3, Timestamp: new Date(Date.now()-3600000*5).toISOString(), Location:'ห้องน้ำชาย ชั้น 2', Worker:'วิชัย ขยัน', Inspector:'ฐิติชญาน์ กมลปิตุลารัตน์', Status:'รอตรวจสอบ',
+        Floor_Action:true, Floor_State:true, Wall_Action:false, Wall_State:false, Toilet_Action:true, Toilet_State:true, Bidet_Action:true, Bidet_State:true, Sink_Action:true, Sink_State:false, Mirror_Action:true, Mirror_State:true, Trash_Action:true, Trash_State:true, Soap_Action:true, Soap_State:true, Tissue_Action:true, Tissue_State:true },
+      { rowId: 4, Timestamp: new Date(Date.now()-3600000*2).toISOString(), Location:'ห้องน้ำหญิง ชั้น 2', Worker:'สมชาย ใจดี', Inspector:'ฐิติชญาน์ กมลปิตุลารัตน์', Status:'รอตรวจสอบ',
+        Floor_Action:true, Floor_State:true, Wall_Action:true, Wall_State:true, Toilet_Action:true, Toilet_State:true, Bidet_Action:true, Bidet_State:true, Sink_Action:true, Sink_State:true, Mirror_Action:true, Mirror_State:true, Trash_Action:true, Trash_State:true, Soap_Action:true, Soap_State:true, Tissue_Action:true, Tissue_State:true }
+    ];
+    const demoBackend = {
+      verifyLogin: (email, pass) => Promise.resolve({ success: true, role: 'admin' }),
+      getDropdownData: () => Promise.resolve({
+        workers: DEMO_DROPDOWNS.workers,
+        workerLocations: {
+          'สมชาย ใจดี': ['ห้องน้ำชาย ชั้น 1', 'ห้องน้ำหญิง ชั้น 2'],
+          'สมหญิง รักงาน': ['ห้องน้ำหญิง ชั้น 1'],
+          'วิชัย ขยัน': ['ห้องน้ำชาย ชั้น 2']
+        }
+      }),
+      getRecords: () => Promise.resolve(demoRecords),
+      saveRecord: (data) => {
+        const rec = { rowId: ++demoRowId, Timestamp: new Date().toISOString(), Location: data.location, Worker: data.worker, Inspector: 'ฐิติชญาน์ กมลปิตุลารัตน์', Status: 'รอตรวจสอบ' };
+        checklistItems.forEach(i => {
+          const key = i.id.charAt(0).toUpperCase() + i.id.slice(1);
+          rec[key + '_Action'] = data[i.id + '_action'];
+          rec[key + '_State'] = null;
+        });
+        demoRecords = [rec, ...demoRecords];
+        return Promise.resolve();
+      },
+      updateReviewStates: (rowId, states) => {
+        const r = demoRecords.find(x => x.rowId === rowId);
+        if (r) {
+          checklistItems.forEach(i => {
+            const key = i.id.charAt(0).toUpperCase() + i.id.slice(1);
+            r[key + '_State'] = !!states[i.id];
+          });
+        }
+        return Promise.resolve();
+      },
+      updateStatus: (rowId, status) => {
+        const r = demoRecords.find(x => x.rowId === rowId);
+        if (r) r.Status = status;
+        return Promise.resolve();
+      }
+    };
+    const backend = new Proxy({}, {
+      get: (_, method) => (...args) => isGAS ? gasRun(method, ...args) : demoBackend[method](...args)
+    });
+
+    // ================= App state =================
+    let userRole = null;
+    let allRecords = [];
+    const INSPECTOR_NAME = 'ฐิติชญาน์ กมลปิตุลารัตน์';
+    const checklistItems = [
+      { id: 'floor', label: 'พื้น' }, { id: 'wall', label: 'ผนัง,เพดาน' },
+      { id: 'toilet', label: 'โถส้วม / โถปัสสาวะ' }, { id: 'bidet', label: 'สายฉีดชำระ ขัน/อ่างน้ำ' },
+      { id: 'sink', label: 'อ่าง ก็อก' }, { id: 'mirror', label: 'กระจก' },
+      { id: 'trash', label: 'ถังขยะ' }, { id: 'soap', label: 'สบู่เหลว' },
+      { id: 'tissue', label: 'ทิชชู่ / ผ้าเช็ดมือ' }
+    ];
+    const pageTitles = {
+      record: 'บันทึกความสะอาด',
+      history: 'ประวัติการบันทึก',
+      analysis: 'การวิเคราะห์',
+      summary: 'สรุปรายเดือน',
+      review: 'รอตรวจสอบ'
+    };
+    const roleNames = { admin: 'ผู้ดูแลระบบ', staff: 'เจ้าหน้าที่', guest: 'ไม่ใช้บัญชี' };
+
+    const cbContainer = document.getElementById('checkbox-container');
+    checklistItems.forEach(item => {
+      cbContainer.innerHTML += `
+        <div class="check-row grid grid-cols-[1fr_auto] gap-2 items-center px-4 py-3 bg-white">
+          <span class="font-semibold text-sm">${item.label}</span>
+          <label class="w-24 flex justify-center cursor-pointer">
+            <input type="checkbox" id="${item.id}_action" class="w-5 h-5">
+          </label>
+        </div>
+      `;
+    });
+
+    document.getElementById('record-date').textContent =
+      new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+
+    // ================= Auth =================
+    function login() {
+      const email = document.getElementById('login-email').value.trim();
+      const pass = document.getElementById('login-password').value;
+      if (!email || !pass) return Swal.fire('แจ้งเตือน', 'กรุณากรอกอีเมลและรหัสผ่าน', 'warning');
+      Swal.fire({ title: 'กำลังตรวจสอบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      backend.verifyLogin(email, pass).then(res => {
+        if (res.success) { Swal.close(); userRole = res.role; setupUI(); }
+        else Swal.fire('ข้อผิดพลาด', res.error || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง', 'error');
+      }).catch(error => {
+        Swal.fire('ข้อผิดพลาด', error.message || 'ไม่สามารถเข้าสู่ระบบได้', 'error');
+      });
+    }
+    function guestLogin() { userRole = 'guest'; setupUI(); }
+    function logout() {
+      userRole = null;
+      const shell = document.getElementById('app-shell');
+      shell.classList.add('hidden'); shell.classList.remove('flex');
+      document.getElementById('view-login').classList.remove('hidden');
+      document.getElementById('login-email').value = '';
+      document.getElementById('login-password').value = '';
+      document.documentElement.classList.add('login-locked');
+      document.body.classList.add('login-locked');
+      window.scrollTo(0, 0);
+    }
+    function setupUI() {
+      document.documentElement.classList.remove('login-locked');
+      document.body.classList.remove('login-locked');
+      document.getElementById('view-login').classList.add('hidden');
+      const shell = document.getElementById('app-shell');
+      shell.classList.remove('hidden'); shell.classList.add('flex');
+      document.getElementById('role-text').textContent = roleNames[userRole] || userRole;
+      if (userRole === 'admin') document.getElementById('nav-review').classList.remove('hidden');
+      else document.getElementById('nav-review').classList.add('hidden');
+      populateDropdowns();
+      navigate('record');
+      window.scrollTo(0, 0);
+    }
+
+    // ================= Router =================
+    function navigate(page) {
+      document.querySelectorAll('div[id^="page-"]').forEach(el => el.classList.add('hidden'));
+      document.getElementById('page-' + page).classList.remove('hidden');
+      document.getElementById('page-title').textContent = pageTitles[page] || '';
+      document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.page === page);
+      });
+      if (page === 'history' || page === 'review' || page === 'analysis' || page === 'summary') {
+        loadData(page);
+      }
+    }
+
+    // ================= Record =================
+    function submitRecord() {
+      const data = {
+        location: document.getElementById('location').value,
+        worker: document.getElementById('worker').value
+      };
+      if (!data.worker || !data.location) {
+        return Swal.fire('แจ้งเตือน', 'กรุณาเลือกผู้ปฏิบัติงานและสถานที่ให้ครบถ้วน', 'warning');
+      }
+      checklistItems.forEach(item => {
+        data[item.id + '_action'] = document.getElementById(item.id + '_action').checked;
+      });
+      Swal.fire({
+        title: 'ยืนยันการบันทึก?', text: 'ข้อมูลจะถูกส่งไปยังหน้ารอตรวจสอบ',
+        icon: 'question', showCancelButton: true,
+        confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#12141f'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+          backend.saveRecord(data).then(() => {
+            Swal.fire('สำเร็จ', 'บันทึกข้อมูลเรียบร้อย', 'success');
+            document.getElementById('record-form').reset();
+            navigate('history');
+          });
+        }
+      });
+    }
+
+    // ================= Data =================
+    function loadData(targetPage) {
+      backend.getRecords()
+        .then(data => {
+          allRecords = data;
+          if (targetPage === 'history') renderHistory();
+          if (targetPage === 'review') renderReview();
+          if (targetPage === 'analysis') renderAnalysis();
+          if (targetPage === 'summary') renderSummary();
+        })
+        .catch(error => {
+          Swal.fire('ข้อผิดพลาดในการโหลดข้อมูล', error.message, 'error');
+          console.error("Load Data Error:", error);
+        });
+    }
+
+    function statusBadge(status) {
+      const map = {
+        'รอตรวจสอบ': 'bg-amber-50 text-amber-700 border border-amber-200',
+        'ยืนยันแล้ว': 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+        'ไม่ถูกต้อง': 'bg-red-50 text-red-700 border border-red-200'
+      };
+      return `<span class="badge ${map[status] || 'bg-gray-100 text-gray-600'}"><span class="dot"></span>${status}</span>`;
+    }
+
+    function renderHistory() {
+      const tbody = document.getElementById('history-tbody');
+      document.getElementById('history-count').textContent = allRecords.length + ' รายการ';
+      tbody.innerHTML = allRecords.map(row => `
+        <tr class="hover:bg-paper transition-colors">
+          <td class="px-5 md:px-7 py-3 font-mono text-[13px] text-gray-600 whitespace-nowrap">${new Date(row.Timestamp).toLocaleString('th-TH')}</td>
+          <td class="px-4 py-3 font-semibold whitespace-nowrap">${row.Location}</td>
+          <td class="px-4 py-3 text-gray-600 whitespace-nowrap">${row.Worker}</td>
+          <td class="px-5 md:px-7 py-3 text-right whitespace-nowrap">${statusBadge(row.Status)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function isReviewed(record) {
+      return checklistItems.every(item => {
+        const value = record[item.id.charAt(0).toUpperCase() + item.id.slice(1) + '_State'];
+        return typeof value === 'boolean';
+      });
+    }
+
+    function renderReview() {
+      const list = document.getElementById('review-list');
+      const pending = allRecords.filter(r => r.Status === 'รอตรวจสอบ');
+      document.getElementById('review-count').textContent = pending.length + ' รายการ';
+      if (pending.length === 0) {
+        list.innerHTML = `
+          <div class="text-center py-10">
+            <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-50 flex items-center justify-center">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <p class="text-gray-500">ไม่มีรายการรอตรวจสอบ</p>
+          </div>`;
+        return;
+      }
+      list.innerHTML = pending.map(row => {
+        const reviewed = isReviewed(row);
+        return `
+          <div class="border border-line rounded-xl p-4 bg-white flex flex-col md:flex-row justify-between md:items-center gap-4">
+            <div class="text-left">
+              <p class="font-semibold">${row.Location} <span class="text-gray-400 font-normal">·</span> <span class="text-gray-600 font-normal">${row.Worker}</span></p>
+              <p class="text-[13px] text-gray-500 font-mono mt-0.5">${new Date(row.Timestamp).toLocaleString('th-TH')}</p>
+              <p class="text-xs mt-1 ${reviewed ? 'text-emerald-600' : 'text-amber-600'}">
+                ${reviewed ? 'ตรวจสอบรายการแล้ว' : 'ยังไม่ได้ตรวจสอบความสะอาด'}
+              </p>
+            </div>
+            <div class="flex flex-wrap gap-2 md:justify-end">
+              <button onclick="inspectRecord(${row.rowId})" class="px-3 py-2 rounded-lg border border-ink text-ink text-sm font-semibold hover:bg-ink hover:text-white transition-colors">ตรวจสอบ</button>
+              <button onclick="confirmStatus(${row.rowId})" class="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors">ยืนยัน</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function inspectRecord(rowId) {
+      const record = allRecords.find(r => r.rowId === rowId);
+      if (!record) return;
+      const key = item => item.id.charAt(0).toUpperCase() + item.id.slice(1) + '_State';
+      const checklistHtml = checklistItems.map(item => {
+        const state = record[key(item)];
+        const checked = state === true ? 'checked' : '';
+        return `
+          <label class="flex items-center justify-between gap-3 py-3 border-b border-line last:border-b-0 cursor-pointer">
+            <span class="font-semibold text-sm">${item.label}</span>
+            <span class="flex items-center gap-2 text-sm text-gray-500">
+              <span>สะอาด / เพียงพอ</span>
+              <input type="checkbox" id="review_${item.id}" class="w-5 h-5" ${checked}>
+            </span>
+          </label>
+        `;
+      }).join('');
+      Swal.fire({
+        title: 'ตรวจสอบความสะอาด',
+        html: `
+          <div class="text-left">
+            <div class="bg-paper rounded-xl border border-line p-3 mb-3 text-sm">
+              <p><strong>สถานที่:</strong> ${record.Location}</p>
+              <p><strong>ผู้ปฏิบัติงาน:</strong> ${record.Worker}</p>
+              <p class="text-gray-500 mt-1">${new Date(record.Timestamp).toLocaleString('th-TH')}</p>
+            </div>
+            <div class="bg-white rounded-xl border border-line px-4">${checklistHtml}</div>
+            <p class="text-xs text-gray-500 mt-3">ติ๊กเฉพาะรายการที่ตรวจแล้วพบว่าสะอาดหรือมีเพียงพอ</p>
+          </div>
+        `,
+        width: '600px', showCancelButton: true,
+        confirmButtonText: 'บันทึกผลตรวจ', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#12141f',
+        preConfirm: () => {
+          const states = {};
+          checklistItems.forEach(item => { states[item.id] = document.getElementById('review_' + item.id).checked; });
+          return states;
+        }
+      }).then(result => {
+        if (!result.isConfirmed) return;
+        Swal.fire({ title: 'กำลังบันทึกผลตรวจ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        backend.updateReviewStates(rowId, result.value)
+          .then(() => { Swal.fire('สำเร็จ', 'บันทึกผลตรวจสอบแล้ว', 'success'); loadData('review'); })
+          .catch(error => { Swal.fire('บันทึกไม่สำเร็จ', error.message || 'เกิดข้อผิดพลาด', 'error'); });
+      });
+    }
+
+    function confirmStatus(rowId) {
+      const record = allRecords.find(r => r.rowId === rowId);
+      if (!record) return;
+      if (!isReviewed(record)) {
+        return Swal.fire('ยังยืนยันไม่ได้', 'กรุณากด "ตรวจสอบ" และบันทึกผลความสะอาดให้ครบทุกหัวข้อก่อน', 'warning');
+      }
+      Swal.fire({
+        title: 'ยืนยันรายงานนี้?', text: 'เมื่อยืนยันแล้ว รายการจะถูกย้ายออกจากหน้ารอตรวจสอบ',
+        icon: 'question', showCancelButton: true,
+        confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#059669'
+      }).then((result) => {
+        if (!result.isConfirmed) return;
+        Swal.fire({ title: 'กำลังยืนยัน...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        backend.updateStatus(rowId, 'ยืนยันแล้ว')
+          .then(() => { Swal.fire('สำเร็จ', 'ยืนยันรายงานเรียบร้อย', 'success'); loadData('review'); })
+          .catch((error) => { Swal.fire('ยืนยันไม่สำเร็จ!', 'สาเหตุ: ' + error.message, 'error'); });
+      });
+    }
+
+    // ================= Analysis =================
+    let chart1, chart2;
+    if (window.Chart) {
+      Chart.defaults.font.family = "'IBM Plex Sans Thai', sans-serif";
+      Chart.defaults.color = '#6b7280';
+    }
+
+    function renderAnalysis() {
+      const issueCounts = {};
+      const workerStats = {};
+      checklistItems.forEach(i => issueCounts[i.label] = 0);
+
+      allRecords.forEach(row => {
+        if (row.Floor_State === false) issueCounts['พื้น']++;
+        if (row.Wall_State === false) issueCounts['ผนังเพดาน']++;
+        if (row.Toilet_State === false) issueCounts['โถส้วม/โถปัสสาวะ']++;
+        if (row.Bidet_State === false) issueCounts['สายฉีดชำระ/ขัน/อ่างน้ำ']++;
+        if (row.Sink_State === false) issueCounts['อ่าง,ก็อก']++;
+        if (row.Mirror_State === false) issueCounts['กระจก']++;
+        if (row.Trash_State === false) issueCounts['ถังขยะ']++;
+        if (row.Soap_State === false) issueCounts['สบู่เหลว']++;
+        if (row.Tissue_State === false) issueCounts['ทิชชู่/ผ้าเช็ดมือ']++;
+
+        if (!workerStats[row.Worker]) workerStats[row.Worker] = { total: 0, clean: 0 };
+        const isOverallClean = (row.Floor_State && row.Toilet_State && row.Sink_State);
+        workerStats[row.Worker].total++;
+        if (isOverallClean) workerStats[row.Worker].clean++;
+      });
+
+      const total = allRecords.length;
+      const pending = allRecords.filter(r => r.Status === 'รอตรวจสอบ').length;
+      const confirmed = allRecords.filter(r => r.Status === 'ยืนยันแล้ว').length;
+      const cleanCount = allRecords.filter(r => r.Floor_State && r.Toilet_State && r.Sink_State).length;
+      document.getElementById('kpi-total').textContent = total;
+      document.getElementById('kpi-pending').textContent = pending;
+      document.getElementById('kpi-confirmed').textContent = confirmed;
+      document.getElementById('kpi-clean').textContent = total ? Math.round((cleanCount / total) * 100) + '%' : '–';
+
+      if (chart1) chart1.destroy();
+      chart1 = new Chart(document.getElementById('issueChart'), {
+        type: 'bar',
+        data: {
+          labels: Object.keys(issueCounts),
+          datasets: [{
+            label: 'จำนวนครั้งที่พบว่าไม่สะอาด',
+            data: Object.values(issueCounts),
+            backgroundColor: '#ef4444', borderRadius: 6, barThickness: 16
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { color: '#eef0f4' }, ticks: { precision: 0 } }, y: { grid: { display: false } } }
+        }
+      });
+
+      const workerNames = Object.keys(workerStats);
+      const workerCleanRates = workerNames.map(w => (workerStats[w].clean / workerStats[w].total) * 100);
+      if (chart2) chart2.destroy();
+      chart2 = new Chart(document.getElementById('workerChart'), {
+        type: 'doughnut',
+        data: {
+          labels: workerNames,
+          datasets: [{
+            label: 'ประสิทธิภาพ (%)',
+            data: workerCleanRates,
+            backgroundColor: ['#12141f', '#00d9a3', '#0d9488', '#f59e0b', '#818cf8', '#f43f5e'],
+            borderWidth: 2, borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          cutout: '62%',
+          plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 16 } } }
+        }
+      });
+    }
+
+    // ================= Dropdowns =================
+    let dropdownData = { workers: [], workerLocations: {} };
+    function cleanLocationName(value) {
+      return String(value ?? '').replace(/^["“”]+|["“”]+$/g, '').trim();
+    }
+    function populateDropdowns() {
+      backend.getDropdownData()
+        .then(function (data) {
+          dropdownData = data;
+          const locSelect = document.getElementById('location');
+          const workerSelect = document.getElementById('worker');
+          workerSelect.innerHTML = '<option value="">-- เลือกผู้ปฏิบัติงานก่อน --</option>';
+          locSelect.innerHTML = '<option value="">-- เลือกผู้ปฏิบัติงานก่อน --</option>';
+          locSelect.disabled = true;
+          data.workers.forEach(worker => {
+            workerSelect.innerHTML += `<option value="${worker}">${worker}</option>`;
+          });
+          workerSelect.onchange = function () {
+            const worker = this.value;
+            locSelect.innerHTML = '<option value="">-- เลือกสถานที่ --</option>';
+            if (!worker) { locSelect.disabled = true; return; }
+            const locations = data.workerLocations[worker] || [];
+            locations.forEach(loc => {
+              const cleanLoc = cleanLocationName(loc);
+              if (cleanLoc) locSelect.innerHTML += `<option value="${cleanLoc}">${cleanLoc}</option>`;
+            });
+            locSelect.disabled = locations.length === 0;
+            if (locations.length === 0) {
+              locSelect.innerHTML = '<option value="">-- ไม่พบสถานที่รับผิดชอบ --</option>';
+            }
+          };
+        })
+        .catch(function (error) { console.error("โหลดข้อมูล Dropdown ล้มเหลว:", error); });
+    }
+
+    // ================= Monthly Summary =================
+    let summaryMonth = null;
+    let summaryWorkers = [];
+    let summarySelectedWorker = null;
+
+    function getCurrentMonthStr() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    function getRecordState(record) {
+      let hasNull = false, hasIssue = false;
+      for (const item of checklistItems) {
+        const key = item.id.charAt(0).toUpperCase() + item.id.slice(1) + '_State';
+        const s = record[key];
+        if (s === null || s === undefined) hasNull = true;
+        else if (s === false) hasIssue = true;
+      }
+      if (hasNull) return 'pending';
+      if (hasIssue) return 'issue';
+      return 'clean';
+    }
+
+    function recordMonthStr(record) {
+      const d = new Date(record.Timestamp);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }
+    function recordDayKey(record) {
+      const d = new Date(record.Timestamp);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    function formatMonthLabel(ym) {
+      if (!ym) return '';
+      const [y, m] = ym.split('-').map(Number);
+      return new Date(y, m - 1, 1).toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+    }
+    function formatDayLabelFromKey(key) {
+      const [y, m, d] = key.split('-').map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString('th-TH', {
+        weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+      });
+    }
+    function getFilteredRecords() {
+      if (!summaryMonth) summaryMonth = getCurrentMonthStr();
+      return allRecords.filter(r => recordMonthStr(r) === summaryMonth);
+    }
+    function onSummaryMonthChange(value) {
+      summaryMonth = value || getCurrentMonthStr();
+      renderSummary();
+    }
+
+    function renderSummary() {
+      if (!summaryMonth) summaryMonth = getCurrentMonthStr();
+      const monthInput = document.getElementById('summary-month');
+      if (monthInput.value !== summaryMonth) monthInput.value = summaryMonth;
+
+      const filtered = getFilteredRecords();
+      const byWorker = {};
+      const daySet = new Set();
+      filtered.forEach(r => {
+        byWorker[r.Worker] = byWorker[r.Worker] || [];
+        byWorker[r.Worker].push(r);
+        daySet.add(recordDayKey(r));
+      });
+      const issueRecords = filtered.filter(r => getRecordState(r) === 'issue').length;
+
+      document.getElementById('sum-workers').textContent = Object.keys(byWorker).length;
+      document.getElementById('sum-days').textContent = daySet.size;
+      document.getElementById('sum-records').textContent = filtered.length;
+      document.getElementById('sum-issues').textContent = issueRecords;
+
+      summaryWorkers = Object.keys(byWorker).sort((a, b) => a.localeCompare(b, 'th'));
+      const list = document.getElementById('summary-worker-list');
+
+      if (summaryWorkers.length === 0) {
+        list.innerHTML = `
+          <div class="card p-10 text-center">
+            <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 14h8M8 17h5"/></svg>
+            </div>
+            <p class="text-gray-500">ไม่มีข้อมูลในเดือน ${formatMonthLabel(summaryMonth)}</p>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = summaryWorkers.map((worker, idx) => {
+        const recs = byWorker[worker];
+        const days = new Set(recs.map(recordDayKey)).size;
+        const clean = recs.filter(r => getRecordState(r) === 'clean').length;
+        const issue = recs.filter(r => getRecordState(r) === 'issue').length;
+        const pending = recs.filter(r => getRecordState(r) === 'pending').length;
+
+        return `
+          <div class="card p-4 md:p-5 flex items-center justify-between gap-4 flex-wrap hover:border-ink/30 transition-colors">
+            <div class="min-w-0">
+              <p class="font-bold text-base">${worker}</p>
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[13px] text-gray-500">
+                <span>มาทำ <strong class="text-ink">${days}</strong> วัน</span>
+                <span class="text-gray-300">·</span>
+                <span>รวม <strong class="text-ink">${recs.length}</strong> ครั้ง</span>
+                <span class="text-gray-300">·</span>
+                <span class="text-emerald-600">สะอาด ${clean}</span>
+                <span class="text-gray-300">·</span>
+                <span class="text-red-600">บกพร่อง ${issue}</span>
+                ${pending > 0 ? `<span class="text-gray-300">·</span><span class="text-amber-600">รอตรวจ ${pending}</span>` : ''}
+              </div>
+            </div>
+            <button onclick="openSummaryDetail(${idx})" class="btn-primary px-4 py-2 text-sm whitespace-nowrap">
+              ดูรายละเอียด
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openSummaryDetail(idx) {
+      const worker = summaryWorkers[idx];
+      if (!worker) return;
+      summarySelectedWorker = worker;
+
+      const recs = allRecords
+        .filter(r => recordMonthStr(r) === summaryMonth && r.Worker === worker)
+        .sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+
+      const byDay = {};
+      recs.forEach(r => {
+        const k = recordDayKey(r);
+        (byDay[k] = byDay[k] || []).push(r);
+      });
+      const dayKeys = Object.keys(byDay).sort().reverse();
+
+      document.getElementById('summary-detail-title').textContent = worker;
+      document.getElementById('summary-detail-subtitle').textContent =
+        `${formatMonthLabel(summaryMonth)} · ${dayKeys.length} วัน · ${recs.length} ครั้ง`;
+
+      const body = document.getElementById('summary-detail-body');
+      if (dayKeys.length === 0) {
+        body.innerHTML = `<p class="text-center text-gray-500 py-10">ไม่มีข้อมูล</p>`;
+      } else {
+        body.innerHTML = dayKeys.map(dayKey => {
+          const dayRecs = byDay[dayKey].sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+          return `
+            <div class="border border-line rounded-xl overflow-hidden mb-4 last:mb-0">
+              <div class="bg-paper px-4 py-3 flex items-center justify-between border-b border-line">
+                <span class="font-semibold text-sm">${formatDayLabelFromKey(dayKey)}</span>
+                <span class="badge bg-white border border-line text-gray-600">${dayRecs.length} ครั้ง</span>
+              </div>
+              <div class="divide-y divide-line">${dayRecs.map(renderRecordBlock).join('')}</div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      document.getElementById('summary-detail-modal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function renderRecordBlock(record) {
+      const time = new Date(record.Timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+      const chips = checklistItems.map(item => {
+        const key = item.id.charAt(0).toUpperCase() + item.id.slice(1) + '_State';
+        const s = record[key];
+        let cls = 'chip chip-null', mark = '·';
+        if (s === true) { cls = 'chip chip-clean'; mark = '✓'; }
+        else if (s === false) { cls = 'chip chip-issue'; mark = '✗'; }
+        return `<span class="${cls}">${item.label} ${mark}</span>`;
+      }).join('');
+      return `
+        <div class="px-4 py-3">
+          <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-mono text-sm text-gray-500">${time}</span>
+              <span class="font-semibold text-sm">${record.Location}</span>
+            </div>
+            ${statusBadge(record.Status)}
+          </div>
+          <div class="flex flex-wrap gap-1.5">${chips}</div>
+        </div>
+      `;
+    }
+
+    function closeSummaryDetail() {
+      document.getElementById('summary-detail-modal').classList.add('hidden');
+      document.body.style.overflow = '';
+      summarySelectedWorker = null;
+    }
+
+    // ================= PRINT (A4 แนวนอน) =================
+    function buildWorkerFormPage(worker, recs) {
+      const [year, month] = summaryMonth.split('-').map(Number);
+      const daysInMonth = new Date(year, month, 0).getDate();
+
+      const byDay = {};
+      recs.forEach(r => {
+        const d = new Date(r.Timestamp);
+        const day = d.getDate();
+        (byDay[day] = byDay[day] || []).push(r);
+      });
+
+      const locations = [...new Set(recs.map(r => r.Location))];
+      const locationText = locations.join(', ');
+
+      // === หัวคอลัมน์วันที่: แสดงบรรทัดเดียว 1..31 ===
+      const dayHeaders = Array.from({ length: daysInMonth }, (_, i) => {
+        return `<th class="day-col">${i + 1}</th>`;
+      }).join('');
+
+      const emptyCells = Array.from({ length: daysInMonth }, () => '<td></td>').join('');
+
+      function buildCell(item, day) {
+        const dayRecs = byDay[day] || [];
+        if (dayRecs.length === 0) return `<td></td>`;
+
+        const key = item.id.charAt(0).toUpperCase() + item.id.slice(1) + '_State';
+        let hasClean = false, hasIssue = false, count = 0;
+        dayRecs.forEach(r => {
+          const s = r[key];
+          count++;
+          if (s === false) hasIssue = true;
+          else if (s === true) hasClean = true;
+        });
+
+        let mark, cls;
+        if (hasIssue) { mark = '✗'; cls = 'mark-issue'; }
+        else if (hasClean) { mark = '✓'; cls = 'mark-clean'; }
+        else { mark = '–'; cls = 'mark-null'; }
+
+        const countSup = count > 1 ? `<sup>${count}</sup>` : '';
+        return `<td class="${cls}">${mark}${countSup}</td>`;
+      }
+
+      function buildRow(item) {
+        const cells = Array.from({ length: daysInMonth }, (_, i) => buildCell(item, i + 1)).join('');
+        return `<tr><td class="pr-label">${item.label}</td>${cells}</tr>`;
+      }
+
+      const section1 = checklistItems.slice(0, 7);
+      const section2 = checklistItems.slice(7);
+
+      return `
+        <div class="pr-page">
+          <div class="pr-form-title">ตารางการทำความสะอาดห้องน้ำภายในโรงพยาบาลบ่อพลอย (แห้ง หอม สะอาด ปลอดภัย)</div>
+          <div class="pr-form-line">
+            <span>สถานที่ <span class="pr-dotted">${locationText}</span></span>
+            <span>เดือน <span class="pr-dotted">${formatMonthLabel(summaryMonth)}</span></span>
+          </div>
+          <div class="pr-form-line">
+            <span>ผู้ปฏิบัติงาน <span class="pr-dotted">${worker}</span></span>
+            <span>ผู้ตรวจสอบ <span class="pr-dotted">${INSPECTOR_NAME}</span></span>
+          </div>
+          <table class="pr-form-table">
+            <thead>
+              <tr>
+                <th class="pr-corner">
+                  <span class="pr-corner-tr">วันที่</span>
+                  <span class="pr-corner-bl">รายการ</span>
+                </th>
+                ${dayHeaders}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="pr-section-label">เรื่องความสะอาด</td>
+                ${emptyCells}
+              </tr>
+              ${section1.map(buildRow).join('')}
+              <tr>
+                <td class="pr-section-label">เรื่องความสะอาด</td>
+                ${emptyCells}
+              </tr>
+              ${section2.map(buildRow).join('')}
+              <tr class="pr-sign-row">
+                <td class="pr-label">ลงชื่อ ผู้ปฏิบัติงาน</td>
+                ${emptyCells}
+              </tr>
+              <tr class="pr-sign-row">
+                <td class="pr-label">ลงชื่อ ผู้ตรวจสอบ</td>
+                ${emptyCells}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function printWorkerReport() {
+      if (!summarySelectedWorker) return;
+      const recs = allRecords
+        .filter(r => recordMonthStr(r) === summaryMonth && r.Worker === summarySelectedWorker);
+      if (recs.length === 0) {
+        return Swal.fire('ไม่มีข้อมูล', 'ไม่พบข้อมูลของ ' + summarySelectedWorker + ' ในเดือนนี้', 'info');
+      }
+      const printArea = document.getElementById('print-area');
+      printArea.innerHTML = buildWorkerFormPage(summarySelectedWorker, recs);
+      triggerPrint();
+    }
+
+    // === พิมพ์ทั้งหมด: รวมทุกคนเป็นไฟล์เดียว หลายหน้า ===
+    function printAllWorkersReport() {
+      const filtered = getFilteredRecords();
+      if (filtered.length === 0) {
+        return Swal.fire('ไม่มีข้อมูล', 'ไม่พบข้อมูลในเดือน ' + formatMonthLabel(summaryMonth), 'info');
+      }
+      const byWorker = {};
+      filtered.forEach(r => {
+        (byWorker[r.Worker] = byWorker[r.Worker] || []).push(r);
+      });
+      const workers = Object.keys(byWorker).sort((a, b) => a.localeCompare(b, 'th'));
+
+      // รวมทุกหน้าลงใน print-area เดียว แล้วเรียก window.print() ครั้งเดียว
+      const pages = workers.map(w => buildWorkerFormPage(w, byWorker[w])).join('');
+      const printArea = document.getElementById('print-area');
+      printArea.innerHTML = pages;
+      triggerPrint();
+    }
+
+    function triggerPrint() {
+      document.getElementById('summary-detail-modal').classList.add('hidden');
+      document.body.style.overflow = '';
+      // รอให้เบราว์เซอร์ render เสร็จก่อนเรียก print
+      setTimeout(() => { window.print(); }, 150);
+    }
+  </script>
+</body>
+</html>
